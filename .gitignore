@@ -1,0 +1,5 @@
+node_modules/
+dist/
+vendor/three.min.js
+*.log
+.DS_Store

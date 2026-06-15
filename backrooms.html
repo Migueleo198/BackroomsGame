@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>The Backrooms</title>
+<link rel="stylesheet" href="styles/game.css" />
+</head>
+<body>
+  <div id="app"><canvas id="c"></canvas></div>
+  <div id="vignette"></div>
+  <div id="fx"></div>
+  <div id="crosshair"></div>
+
+  <!-- in-game HUD -->
+  <div id="hud">
+    <div class="vitals">
+      <div class="bar"><div class="ic">&#10084;&#65039;</div><div class="track"><div id="hpFill" class="fill hp"></div></div></div>
+      <div class="bar"><div class="ic">&#129504;</div><div class="track"><div id="sanFill" class="fill san"></div></div></div>
+      <div class="bar"><div class="ic">&#9889;</div><div class="track"><div id="stamFill" class="fill stam"></div></div></div>
+      <div class="bar batt" id="battBar"><div class="ic">&#128268;</div><div class="track"><div id="battFill" class="fill batt"></div></div></div>
+    </div>
+
+    <div class="objective">
+      <div class="lvl" id="lvlText">Level 0</div>
+      <div class="goal" id="goalText">Survive.</div>
+      <div class="count" id="countText"></div>
+    </div>
+
+    <div id="toast"></div>
+    <div id="prompt"></div>
+    <div id="hotbar"></div>
+  </div>
+
+  <!-- note overlay -->
+  <div id="noteOverlay" class="overlay">
+    <div class="card">
+      <div class="note-paper">
+        <h3 id="noteTitle">Note</h3>
+        <div id="noteBody"></div>
+      </div>
+      <div class="close">[ E ] or click to put it away</div>
+    </div>
+  </div>
+
+  <!-- journal overlay -->
+  <div id="journalOverlay" class="overlay">
+    <div class="card journal">
+      <h2>Field Journal</h2>
+      <div id="journalCounts" class="count" style="color:#9a926c"></div>
+      <div class="sec">Notes Recovered</div>
+      <div id="journalNotes"></div>
+      <div class="sec">Controls</div>
+      <div class="ctl">
+        <span><b>WASD</b> move</span><span><b>Shift</b> run</span>
+        <span><b>Space</b> jump</span><span><b>Ctrl / C</b> crouch</span>
+        <span><b>E</b> interact</span><span><b>F</b> lantern</span>
+        <span><b>1-6 / wheel</b> select</span><span><b>Q / click</b> use item</span>
+        <span><b>Tab</b> journal</span><span><b>Esc</b> pause</span>
+      </div>
+      <div class="close">[ Tab ] to close</div>
+    </div>
+  </div>
+
+  <!-- death overlay -->
+  <div id="deathOverlay" class="overlay">
+    <div class="card death" style="text-align:center">
+      <h1 id="deathTitle">You faded</h1>
+      <p id="deathText">The hum swallowed you. The yellow rooms keep no record of those who stop walking.</p>
+      <div class="actions" style="justify-content:center">
+        <button id="respawn" class="primary">No-clip back in</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- main menu / pause -->
+  <div id="menu">
+    <div class="card">
+      <div class="eyebrow">Level 0 &middot; No-clip</div>
+      <h1>The Backrooms<span class="sub">If you're not careful and you noclip out of reality&hellip;</span></h1>
+      <p class="intro">You're alone in the yellow rooms. Search the <b>desk drawers</b> &mdash; the old crews left <b>Almond Water</b>, batteries, a <b>lantern</b>, and the key that no-clips you deeper. Open a drawer, then point at the item you want. Keep your <b>sanity</b> up, mind the dark stretches where the tubes have died, and listen: you are not the only thing down here. If you hear a heartbeat that isn't yours&hellip; walk away.</p>
+
+      <div class="keys">
+        <span><b>W A S D</b> move</span>
+        <span><b>Mouse</b> look</span>
+        <span><b>Shift</b> run</span>
+        <span><b>Space</b> jump</span>
+        <span><b>Ctrl / C</b> crouch</span>
+        <span><b>E</b> interact</span>
+        <span><b>F</b> lantern</span>
+        <span><b>1-6</b> items</span>
+        <span><b>Q</b> use</span>
+        <span><b>Tab</b> journal</span>
+        <span><b>Esc</b> pause</span>
+      </div>
+
+      <div class="settings">
+        <div class="row">
+          <label for="fov">Field of view</label>
+          <input id="fov" type="range" min="60" max="110" step="1" value="78" />
+          <output id="fovOut">78&deg;</output>
+        </div>
+        <div class="row">
+          <label for="sens">Look speed</label>
+          <input id="sens" type="range" min="0.4" max="2.6" step="0.05" value="1" />
+          <output id="sensOut">1.0&times;</output>
+        </div>
+        <div class="row">
+          <label for="vis">Visibility</label>
+          <input id="vis" type="range" min="0" max="100" step="1" value="55" />
+          <output id="visOut">55%</output>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="play" class="primary">Enter</button>
+        <button id="regen">Restart</button>
+        <button id="sound">Sound: on</button>
+        <span class="hint">click to lock the mouse</span>
+      </div>
+
+      <div id="err">
+        Couldn't load the 3D engine. This page needs an internet connection the first time it opens
+        (it pulls Three.js from a CDN). Reconnect and reload.
+      </div>
+    </div>
+  </div>
+
+  <!-- engine: prefer a bundled local copy (desktop/offline), fall back to CDN -->
+  <script src="vendor/three.min.js" onerror="window.__noLocalThree=1"></script>
+  <script>
+    if (!window.THREE) {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+    }
+  </script>
+
+  <!-- Three.js postprocessing modules (bloom). Vendor copies if present, else CDN.
+       Optional: if these fail to load the game still runs, just without bloom. -->
+  <script>
+    (function () {
+      var local = !window.__noLocalThree && window.THREE;
+      var base = local ? 'vendor/' : 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/';
+      var files = [
+        'shaders/CopyShader.js',
+        'shaders/LuminosityHighPassShader.js',
+        'shaders/GammaCorrectionShader.js',
+        'shaders/SSAOShader.js',
+        'math/SimplexNoise.js',
+        'postprocessing/EffectComposer.js',
+        'postprocessing/ShaderPass.js',
+        'postprocessing/MaskPass.js',
+        'postprocessing/RenderPass.js',
+        'postprocessing/UnrealBloomPass.js',
+        'postprocessing/SSAOPass.js',
+        'loaders/GLTFLoader.js'
+      ];
+      for (var i = 0; i < files.length; i++) {
+        document.write('<scr' + 'ipt src="' + base + files[i] + '"><\/scr' + 'ipt>');
+      }
+    })();
+  </script>
+
+  <!-- game modules (classic scripts, loaded in dependency order so it runs from file://) -->
+  <script src="src/core.js"></script>
+  <script src="src/textures.js"></script>
+  <script src="src/world.js"></script>
+  <script src="src/lighting.js"></script>
+  <script src="src/entity.js"></script>
+  <script src="src/furniture.js"></script>
+  <script src="src/items.js"></script>
+  <script src="src/player.js"></script>
+  <script src="src/audio.js"></script>
+  <script src="src/ui.js"></script>
+  <script src="src/game.js"></script>
+</body>
+</html>
